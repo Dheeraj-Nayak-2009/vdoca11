@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Video Call</title>
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <h2>Free Video Call</h2>
+
+  <p>Your ID will appear in alert. Share it with friend.</p>
+
+  <video id="myVideo" autoplay muted style="width:300px;"></video>
+  <video id="remoteVideo" autoplay style="width:300px;"></video>
+
+  <script>
+    const peer = new Peer();
+    const myVideo = document.getElementById("myVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(stream => {
+        myVideo.srcObject = stream;
+
+        peer.on("call", call => {
+          call.answer(stream);
+          call.on("stream", remoteStream => {
+            remoteVideo.srcObject = remoteStream;
+          });
+        });
+
+        const id = prompt("Enter friend ID to call:");
+        if (id) {
+          const call = peer.call(id, stream);
+          call.on("stream", remoteStream => {
+            remoteVideo.srcObject = remoteStream;
+          });
+        }
+      });
+
+    peer.on("open", id => {
+      alert("Your ID: " + id);
+    });
+  </script>
+</body>
+</html>
