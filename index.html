@@ -1,45 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Simple Video Call</title>
-  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+  <title>Simple 3 Letter Video Call</title>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #111;
+      color: white;
+    }
+    video {
+      width: 45%;
+      margin: 10px;
+      border-radius: 10px;
+      background: black;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 18px;
+      margin: 5px;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+    }
+  </style>
 </head>
 <body>
-  <h2>Free Video Call</h2>
 
-  <p>Your ID will appear in alert. Share it with friend.</p>
+  <h1>3 Letter Video Call</h1>
 
-  <video id="myVideo" autoplay muted style="width:300px;"></video>
-  <video id="remoteVideo" autoplay style="width:300px;"></video>
+  <input id="roomInput" maxlength="3" placeholder="abc" />
+  <button onclick="startCall()">Join</button>
 
-  <script>
-    const peer = new Peer();
-    const myVideo = document.getElementById("myVideo");
-    const remoteVideo = document.getElementById("remoteVideo");
+  <div>
+    <video id="localVideo" autoplay muted playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+  </div>
 
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then(stream => {
-        myVideo.srcObject = stream;
+<script>
+let peer;
+let localStream;
 
-        peer.on("call", call => {
-          call.answer(stream);
-          call.on("stream", remoteStream => {
-            remoteVideo.srcObject = remoteStream;
-          });
-        });
+async function startCall() {
+  const roomId = document.getElementById("roomInput").value.toLowerCase();
 
-        const id = prompt("Enter friend ID to call:");
-        if (id) {
-          const call = peer.call(id, stream);
-          call.on("stream", remoteStream => {
-            remoteVideo.srcObject = remoteStream;
-          });
-        }
-      });
+  if (roomId.length !== 3) {
+    alert("Room ID must be exactly 3 letters.");
+    return;
+  }
 
-    peer.on("open", id => {
-      alert("Your ID: " + id);
+  // Get camera + mic
+  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  document.getElementById("localVideo").srcObject = localStream;
+
+  peer = new Peer(roomId);
+
+  peer.on('open', id => {
+    console.log("Connected with ID:", id);
+  });
+
+  // If someone calls you
+  peer.on('call', call => {
+    call.answer(localStream);
+    call.on('stream', remoteStream => {
+      document.getElementById("remoteVideo").srcObject = remoteStream;
     });
-  </script>
+  });
+
+  peer.on('error', async err => {
+    // If ID already exists, join instead
+    if (err.type === 'unavailable-id') {
+      peer = new Peer();
+
+      peer.on('open', id => {
+        const call = peer.call(roomId, localStream);
+
+        call.on('stream', remoteStream => {
+          document.getElementById("remoteVideo").srcObject = remoteStream;
+        });
+      });
+    }
+  });
+}
+</script>
+
 </body>
 </html>
