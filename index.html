@@ -1,161 +1,117 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Clarity - Multi Video</title>
+  <title>Simple 3 Letter Video Call</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #111;
+      color: white;
+    }
+    video {
+      width: 45%;
+      margin: 10px;
+      border-radius: 10px;
+      background: black;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 18px;
+      margin: 5px;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+    }
+    #muteBtn {
+      background: #f44336;
+    }
+  </style>
 </head>
+<body>
 
-<body class="bg-zinc-950 text-white h-screen flex flex-col">
+  <h1>3 Letter Video Call</h1>
 
-<!-- Join Screen -->
-<div id="joinScreen" class="flex flex-col items-center justify-center flex-1 gap-4">
-  <h1 class="text-3xl font-semibold">Clarity</h1>
-  <input id="roomInput" maxlength="3" placeholder="abc"
-         class="px-4 py-2 rounded-lg bg-zinc-800 outline-none">
-  <button onclick="joinRoom()"
-          class="px-6 py-2 bg-white text-black rounded-lg">
-    Join Room
-  </button>
-</div>
+  <input id="roomInput" maxlength="3" placeholder="abc" />
+  <button onclick="startCall()">Join</button>
+  <button id="muteBtn" onclick="toggleMic()" disabled>Enable Mic</button>
 
-<!-- Call Screen -->
-<div id="callScreen" class="hidden flex-1 flex flex-col">
-
-  <!-- Video Grid -->
-  <div id="videoGrid"
-       class="flex-1 grid gap-2 p-4 auto-rows-fr">
+  <div>
+    <video id="localVideo" autoplay muted playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
   </div>
-
-  <!-- Controls -->
-  <div class="p-4 flex justify-center gap-4 bg-black/40 backdrop-blur">
-
-    <button onclick="toggleMic()"
-            id="micBtn"
-            class="w-14 h-14 rounded-full bg-zinc-700 flex items-center justify-center">
-      🎤
-    </button>
-
-    <button onclick="toggleCam()"
-            id="camBtn"
-            class="w-14 h-14 rounded-full bg-zinc-700 flex items-center justify-center">
-      📷
-    </button>
-
-    <button onclick="leaveCall()"
-            class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center">
-      ❌
-    </button>
-
-  </div>
-</div>
 
 <script>
 let peer;
 let localStream;
-let peers = {};
-let myId;
 let micEnabled = false;
-let camEnabled = true;
-let roomId;
 
-async function joinRoom() {
+async function startCall() {
+  const roomId = document.getElementById("roomInput").value.toLowerCase();
 
-  roomId = document.getElementById("roomInput").value.toLowerCase();
-  if (roomId.length !== 3) return alert("Room ID must be 3 letters.");
+  if (roomId.length !== 3) {
+    alert("Room ID must be exactly 3 letters.");
+    return;
+  }
 
-  document.getElementById("joinScreen").classList.add("hidden");
-  document.getElementById("callScreen").classList.remove("hidden");
-
+  // Get camera + mic
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
-  // mic off initially
+  // 🔇 Mute mic initially
   localStream.getAudioTracks()[0].enabled = false;
 
-  peer = new Peer();
+  document.getElementById("localVideo").srcObject = localStream;
+  document.getElementById("muteBtn").disabled = false;
 
-  peer.on("open", id => {
-    myId = id;
-    connectToRoom();
-    addVideoStream(localStream, id, true);
+  peer = new Peer(roomId);
+
+  peer.on('open', id => {
+    console.log("Connected with ID:", id);
   });
 
-  peer.on("call", call => {
+  // If someone calls you
+  peer.on('call', call => {
     call.answer(localStream);
-    call.on("stream", stream => {
-      addVideoStream(stream, call.peer);
+    call.on('stream', remoteStream => {
+      document.getElementById("remoteVideo").srcObject = remoteStream;
     });
   });
-}
 
-function connectToRoom() {
-  const roomPeer = new Peer(roomId);
+  peer.on('error', err => {
+    if (err.type === 'unavailable-id') {
+      peer = new Peer();
 
-  roomPeer.on("error", err => {
-    if (err.type === "unavailable-id") {
-      connectAsMember();
+      peer.on('open', id => {
+        const call = peer.call(roomId, localStream);
+
+        call.on('stream', remoteStream => {
+          document.getElementById("remoteVideo").srcObject = remoteStream;
+        });
+      });
     }
   });
-
-  roomPeer.on("open", () => {
-    // first person in room
-  });
-}
-
-function connectAsMember() {
-  const roomHost = new Peer();
-
-  roomHost.on("open", id => {
-    const call = roomHost.call(roomId, localStream);
-
-    call.on("stream", stream => {
-      addVideoStream(stream, call.peer);
-    });
-  });
-}
-
-function addVideoStream(stream, id, isSelf = false) {
-  const video = document.createElement("video");
-  video.srcObject = stream;
-  video.autoplay = true;
-  video.playsInline = true;
-  if (isSelf) video.muted = true;
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "bg-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center";
-  wrapper.appendChild(video);
-
-  document.getElementById("videoGrid").appendChild(wrapper);
-
-  adjustGrid();
-}
-
-function adjustGrid() {
-  const grid = document.getElementById("videoGrid");
-  const count = grid.children.length;
-
-  if (count <= 1) grid.className = "flex-1 grid grid-cols-1 gap-2 p-4";
-  else if (count == 2) grid.className = "flex-1 grid grid-cols-2 gap-2 p-4";
-  else if (count <= 4) grid.className = "flex-1 grid grid-cols-2 gap-2 p-4";
-  else if (count <= 6) grid.className = "flex-1 grid grid-cols-3 gap-2 p-4";
-  else grid.className = "flex-1 grid grid-cols-4 gap-2 p-4";
 }
 
 function toggleMic() {
+  const audioTrack = localStream.getAudioTracks()[0];
+
   micEnabled = !micEnabled;
-  localStream.getAudioTracks()[0].enabled = micEnabled;
-  document.getElementById("micBtn").innerText = micEnabled ? "🎙️" : "🎤";
-}
+  audioTrack.enabled = micEnabled;
 
-function toggleCam() {
-  camEnabled = !camEnabled;
-  localStream.getVideoTracks()[0].enabled = camEnabled;
-  document.getElementById("camBtn").innerText = camEnabled ? "📷" : "🚫";
-}
+  const btn = document.getElementById("muteBtn");
 
-function leaveCall() {
-  peer.destroy();
-  location.reload();
+  if (micEnabled) {
+    btn.textContent = "Mute Mic";
+    btn.style.background = "#4CAF50";
+  } else {
+    btn.textContent = "Enable Mic";
+    btn.style.background = "#f44336";
+  }
 }
 </script>
 
