@@ -28,6 +28,9 @@
       background: #4CAF50;
       color: white;
     }
+    #muteBtn {
+      background: #f44336;
+    }
   </style>
 </head>
 <body>
@@ -36,6 +39,7 @@
 
   <input id="roomInput" maxlength="3" placeholder="abc" />
   <button onclick="startCall()">Join</button>
+  <button id="muteBtn" onclick="toggleMic()" disabled>Enable Mic</button>
 
   <div>
     <video id="localVideo" autoplay muted playsinline></video>
@@ -45,6 +49,7 @@
 <script>
 let peer;
 let localStream;
+let micEnabled = false;
 
 async function startCall() {
   const roomId = document.getElementById("roomInput").value.toLowerCase();
@@ -56,7 +61,12 @@ async function startCall() {
 
   // Get camera + mic
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+  // 🔇 Mute mic initially
+  localStream.getAudioTracks()[0].enabled = false;
+
   document.getElementById("localVideo").srcObject = localStream;
+  document.getElementById("muteBtn").disabled = false;
 
   peer = new Peer(roomId);
 
@@ -72,8 +82,7 @@ async function startCall() {
     });
   });
 
-  peer.on('error', async err => {
-    // If ID already exists, join instead
+  peer.on('error', err => {
     if (err.type === 'unavailable-id') {
       peer = new Peer();
 
@@ -86,6 +95,23 @@ async function startCall() {
       });
     }
   });
+}
+
+function toggleMic() {
+  const audioTrack = localStream.getAudioTracks()[0];
+
+  micEnabled = !micEnabled;
+  audioTrack.enabled = micEnabled;
+
+  const btn = document.getElementById("muteBtn");
+
+  if (micEnabled) {
+    btn.textContent = "Mute Mic";
+    btn.style.background = "#4CAF50";
+  } else {
+    btn.textContent = "Enable Mic";
+    btn.style.background = "#f44336";
+  }
 }
 </script>
 
