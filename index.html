@@ -3,47 +3,147 @@
 <head>
   <title>Simple 3 Letter Video Call</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #111;
-      color: white;
-    }
-    video {
-      width: 45%;
-      margin: 10px;
-      border-radius: 10px;
-      background: black;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 18px;
-      margin: 5px;
-      border-radius: 6px;
-      border: none;
-    }
-    button {
-      cursor: pointer;
-      background: #4CAF50;
-      color: white;
-    }
-    #muteBtn {
-      background: #f44336;
-    }
-  </style>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Offside&display=swap');
+
+  body {
+    font-family: "Offside", cursive;
+    text-align: center;
+    background: black;
+    color: white;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 100px);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+
+    padding:    8px 25px;
+    border-radius: 50px;
+
+    /* Glassmorphism */
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .controls input {
+    padding: 6px 14px;
+    font-size: 16px;
+    border: none;
+    border-radius: 50px;
+    width: 4ch;
+
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    outline: none;
+    text-align: center;
+  }
+
+  .controls input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .controls button {
+    padding: 6px 14px;
+    font-size: 14px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+
+    background: rgba(0, 255, 128, 0.25);
+    color: white;
+    border: 1px solid rgba(0, 255, 128, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  .controls button:hover {
+    background: rgba(0, 255, 128, 0.4);
+    transform: scale(1.05);
+  }
+
+  #muteBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: white;
+  opacity: 0.6;
+  transition: all 0.25s ease;
+}
+
+#muteBtn.active {
+  background: rgba(0, 255, 128, 0.15);
+  border: 1px solid rgba(0, 255, 128, 0.5);
+  box-shadow: 0 0 15px rgba(0, 255, 128, 0.4);
+  opacity: 1;
+}
+
+  #roomInput {
+    text-transform: lowercase;
+  }
+
+  #remoteVideo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(100% - 10px);
+    height: calc(100% - 10px);
+    z-index: -10;
+    object-fit: cover;
+  }
+
+  #localVideo {
+    position: absolute;
+    bottom: 110px;
+    right: 20px;
+    width: 40%;
+    height: 30%;
+    max-width: 300px;
+    z-index: 10;
+    background: black;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+  }
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.15) inset !important;
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.15) inset !important;
+
+  -webkit-text-fill-color: white !important;
+  caret-color: white;
+
+  transition: background-color 5000s ease-in-out 0s;
+}
+</style>
 </head>
 <body>
 
-  <h1>3 Letter Video Call</h1>
-
-  <input id="roomInput" maxlength="3" placeholder="abc" />
-  <button onclick="startCall()">Join</button>
-  <button id="muteBtn" onclick="toggleMic()" disabled>Enable Mic</button>
+  <h1>VdoCa11</h1>
 
   <div>
     <video id="localVideo" autoplay muted playsinline></video>
     <video id="remoteVideo" autoplay playsinline></video>
+  </div>
+
+  <div class="controls">
+    <input id="roomInput" maxlength="3" placeholder="_id"/>
+    <button onclick="startCall()">Join</button>
+    <button id="muteBtn" onclick="toggleMic()" disabled>Mic</button>
   </div>
 
 <script>
@@ -59,14 +159,16 @@ async function startCall() {
     return;
   }
 
-  // Get camera + mic
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
-  // 🔇 Mute mic initially
-  localStream.getAudioTracks()[0].enabled = false;
+  localStream.getAudioTracks()[0].enabled = true;
+micEnabled = true; // <-- IMPORTANT
 
-  document.getElementById("localVideo").srcObject = localStream;
-  document.getElementById("muteBtn").disabled = false;
+document.getElementById("localVideo").srcObject = localStream;
+
+const muteBtn = document.getElementById("muteBtn");
+muteBtn.disabled = false;
+muteBtn.classList.add("active");
 
   peer = new Peer(roomId);
 
@@ -105,12 +207,13 @@ function toggleMic() {
 
   const btn = document.getElementById("muteBtn");
 
+  // Keep text always "Mic"
+  btn.textContent = "Mic";
+
   if (micEnabled) {
-    btn.textContent = "Mute Mic";
-    btn.style.background = "#4CAF50";
+    btn.classList.add("active");
   } else {
-    btn.textContent = "Enable Mic";
-    btn.style.background = "#f44336";
+    btn.classList.remove("active");
   }
 }
 </script>
