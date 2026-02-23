@@ -4,84 +4,71 @@
   <title>VdoCa11</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Offside&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Offside&display=swap');
 
-  body {
-    font-family: "Offside", cursive;
-    text-align: center;
-    background: black;
-    color: white;
-    margin: 0;
-    overflow: hidden;
-  }
+body {
+  font-family: "Offside", cursive;
+  text-align: center;
+  background: black;
+  color: white;
+  margin: 0;
+  overflow: hidden;
+}
 
-  .controls {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 100px);
+.controls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 100px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 25px;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
+.controls input {
+  padding: 6px 14px;
+  font-size: 16px;
+  border: none;
+  border-radius: 50px;
+  width: 4ch;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  outline: none;
+  text-align: center;
+}
 
-    padding:    8px 25px;
-    border-radius: 50px;
+.controls button {
+  padding: 6px 14px;
+  font-size: 14px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  background: rgba(0, 255, 128, 0.25);
+  color: white;
+  border: 1px solid rgba(0, 255, 128, 0.4);
+  transition: all 0.2s ease;
+}
 
-    /* Glassmorphism */
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  }
+.controls button:hover {
+  background: rgba(0, 255, 128, 0.4);
+  transform: scale(1.05);
+}
 
-  .controls input {
-    padding: 6px 14px;
-    font-size: 16px;
-    border: none;
-    border-radius: 50px;
-    width: 4ch;
-
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
-    outline: none;
-    text-align: center;
-  }
-
-  .controls input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .controls button {
-    padding: 6px 14px;
-    font-size: 14px;
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-
-    background: rgba(0, 255, 128, 0.25);
-    color: white;
-    border: 1px solid rgba(0, 255, 128, 0.4);
-    transition: all 0.2s ease;
-  }
-
-  .controls button:hover {
-    background: rgba(0, 255, 128, 0.4);
-    transform: scale(1.05);
-  }
-
-  #muteBtn {
+#muteBtn {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   color: white;
   opacity: 0.6;
-  transition: all 0.25s ease;
 }
 
 #muteBtn.active {
@@ -91,94 +78,94 @@
   opacity: 1;
 }
 
-  #roomInput {
-    text-transform: lowercase;
-  }
+#switchBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  opacity: 0.6;
+}
 
-  #remoteVideo {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: calc(100% - 10px);
-    height: calc(100% - 10px);
-    z-index: -10;
-    object-fit: cover;
-  }
+#switchBtn.active {
+  background: rgba(0, 255, 128, 0.15);
+  border: 1px solid rgba(0, 255, 128, 0.5);
+  box-shadow: 0 0 15px rgba(0, 255, 128, 0.4);
+  opacity: 1;
+}
 
-  #localVideo {
-    position: absolute;
-    bottom: 110px;
-    right: 20px;
-    width: 40%;
-    height: 30%;
-    max-width: 300px;
-    z-index: 10;
-    background: black;
-    border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 15px;
-    backdrop-filter: blur(5px);
-  }
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.15) inset !important;
-  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.15) inset !important;
+#remoteVideo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -10;
+  object-fit: cover;
+}
 
-  -webkit-text-fill-color: white !important;
-  caret-color: white;
-
-  transition: background-color 5000s ease-in-out 0s;
+#localVideo {
+  position: absolute;
+  bottom: 110px;
+  right: 20px;
+  width: 40%;
+  height: 30%;
+  max-width: 300px;
+  z-index: 10;
+  background: black;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 15px;
 }
 </style>
 </head>
 <body>
 
-  <h1>VdoCa11</h1>
+<h1>VdoCa11</h1>
 
-  <div>
-    <video id="localVideo" autoplay muted playsinline></video>
-    <video id="remoteVideo" autoplay playsinline></video>
-  </div>
+<video id="localVideo" autoplay muted playsinline></video>
+<video id="remoteVideo" autoplay playsinline></video>
 
-  <div class="controls">
-    <input id="roomInput" maxlength="3" placeholder="_id"/>
-    <button onclick="startCall()">Join</button>
-    <button id="muteBtn" onclick="toggleMic()" disabled>Mic</button>
-  </div>
+<div class="controls">
+  <input id="roomInput" maxlength="3" placeholder="_id"/>
+  <button onclick="startCall()">Join</button>
+  <button id="muteBtn" onclick="toggleMic()" disabled>Mic</button>
+  <button id="switchBtn" onclick="switchCamera()" disabled>Cam</button>
+</div>
 
 <script>
 let peer;
 let localStream;
-let micEnabled = false;
+let currentCall;
+let micEnabled = true;
+let videoDevices = [];
+let currentCameraIndex = 0;
+
+async function getCameras() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  videoDevices = devices.filter(d => d.kind === "videoinput");
+}
 
 async function startCall() {
   const roomId = document.getElementById("roomInput").value.toLowerCase();
-
   if (roomId.length !== 3) {
     alert("Room ID must be exactly 3 letters.");
     return;
   }
 
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  await getCameras();
 
-  localStream.getAudioTracks()[0].enabled = true;
-micEnabled = true; // <-- IMPORTANT
+  localStream = await navigator.mediaDevices.getUserMedia({
+    video: { deviceId: videoDevices[0]?.deviceId },
+    audio: true
+  });
 
-document.getElementById("localVideo").srcObject = localStream;
+  document.getElementById("localVideo").srcObject = localStream;
 
-const muteBtn = document.getElementById("muteBtn");
-muteBtn.disabled = false;
-muteBtn.classList.add("active");
+  document.getElementById("muteBtn").disabled = false;
+  document.getElementById("switchBtn").disabled = videoDevices.length < 2;
 
   peer = new Peer(roomId);
 
-  peer.on('open', id => {
-    console.log("Connected with ID:", id);
-  });
-
-  // If someone calls you
   peer.on('call', call => {
+    currentCall = call;
     call.answer(localStream);
     call.on('stream', remoteStream => {
       document.getElementById("remoteVideo").srcObject = remoteStream;
@@ -188,11 +175,9 @@ muteBtn.classList.add("active");
   peer.on('error', err => {
     if (err.type === 'unavailable-id') {
       peer = new Peer();
-
       peer.on('open', id => {
-        const call = peer.call(roomId, localStream);
-
-        call.on('stream', remoteStream => {
+        currentCall = peer.call(roomId, localStream);
+        currentCall.on('stream', remoteStream => {
           document.getElementById("remoteVideo").srcObject = remoteStream;
         });
       });
@@ -202,20 +187,36 @@ muteBtn.classList.add("active");
 
 function toggleMic() {
   const audioTrack = localStream.getAudioTracks()[0];
-
   micEnabled = !micEnabled;
   audioTrack.enabled = micEnabled;
 
   const btn = document.getElementById("muteBtn");
+  if (micEnabled) btn.classList.add("active");
+  else btn.classList.remove("active");
+}
 
-  // Keep text always "Mic"
-  btn.textContent = "Mic";
+async function switchCamera() {
+  if (videoDevices.length < 2) return;
 
-  if (micEnabled) {
-    btn.classList.add("active");
-  } else {
-    btn.classList.remove("active");
-  }
+  currentCameraIndex = (currentCameraIndex + 1) % videoDevices.length;
+
+  const newStream = await navigator.mediaDevices.getUserMedia({
+    video: { deviceId: videoDevices[currentCameraIndex].deviceId },
+    audio: false
+  });
+
+  const newVideoTrack = newStream.getVideoTracks()[0];
+  const sender = currentCall?.peerConnection
+    ?.getSenders()
+    .find(s => s.track.kind === "video");
+
+  if (sender) sender.replaceTrack(newVideoTrack);
+
+  localStream.getVideoTracks()[0].stop();
+  localStream.removeTrack(localStream.getVideoTracks()[0]);
+  localStream.addTrack(newVideoTrack);
+
+  document.getElementById("localVideo").srcObject = localStream;
 }
 </script>
 
