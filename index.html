@@ -23,14 +23,18 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 100px);
+
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 12px;
+
   padding: 8px 25px;
   border-radius: 50px;
+
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
@@ -65,30 +69,15 @@ body {
 }
 
 #muteBtn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: white;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.25);
   opacity: 0.6;
 }
 
 #muteBtn.active {
-  background: rgba(0, 255, 128, 0.15);
-  border: 1px solid rgba(0, 255, 128, 0.5);
-  box-shadow: 0 0 15px rgba(0, 255, 128, 0.4);
-  opacity: 1;
-}
-
-#switchBtn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: white;
-  opacity: 0.6;
-}
-
-#switchBtn.active {
-  background: rgba(0, 255, 128, 0.15);
-  border: 1px solid rgba(0, 255, 128, 0.5);
-  box-shadow: 0 0 15px rgba(0, 255, 128, 0.4);
+  background: rgba(0,255,128,0.15);
+  border: 1px solid rgba(0,255,128,0.5);
+  box-shadow: 0 0 15px rgba(0,255,128,0.4);
   opacity: 1;
 }
 
@@ -96,8 +85,8 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: calc(100% - 10px);
+  height: calc(100% - 10px);
   z-index: -10;
   object-fit: cover;
 }
@@ -127,21 +116,17 @@ body {
   <input id="roomInput" maxlength="3" placeholder="_id"/>
   <button onclick="startCall()">Join</button>
   <button id="muteBtn" onclick="toggleMic()" disabled>Mic</button>
-  <button id="switchBtn" onclick="switchCamera()" disabled>Cam</button>
+  <button id="switchCamBtn" onclick="switchCamera()" disabled>Cam</button>
 </div>
 
 <script>
 let peer;
 let localStream;
-let currentCall;
 let micEnabled = true;
+let currentVideoTrack;
+let currentDeviceIndex = 0;
 let videoDevices = [];
-let currentCameraIndex = 0;
-
-async function getCameras() {
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  videoDevices = devices.filter(d => d.kind === "videoinput");
-}
+let currentCall;
 
 async function startCall() {
   const roomId = document.getElementById("roomInput").value.toLowerCase();
@@ -151,16 +136,7 @@ async function startCall() {
   }
 
   await getCameras();
-
-  localStream = await navigator.mediaDevices.getUserMedia({
-    video: { deviceId: videoDevices[0]?.deviceId },
-    audio: true
-  });
-
-  document.getElementById("localVideo").srcObject = localStream;
-
-  document.getElementById("muteBtn").disabled = false;
-  document.getElementById("switchBtn").disabled = videoDevices.length < 2;
+  await startStream(videoDevices[currentDeviceIndex].deviceId);
 
   peer = new Peer(roomId);
 
@@ -176,13 +152,52 @@ async function startCall() {
     if (err.type === 'unavailable-id') {
       peer = new Peer();
       peer.on('open', id => {
-        currentCall = peer.call(roomId, localStream);
-        currentCall.on('stream', remoteStream => {
+        const call = peer.call(roomId, localStream);
+        currentCall = call;
+        call.on('stream', remoteStream => {
           document.getElementById("remoteVideo").srcObject = remoteStream;
         });
       });
     }
   });
+
+  document.getElementById("muteBtn").disabled = false;
+  document.getElementById("switchCamBtn").disabled = false;
+}
+
+async function getCameras() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  videoDevices = devices.filter(d => d.kind === "videoinput");
+}
+
+async function startStream(deviceId) {
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+  }
+
+  localStream = await navigator.mediaDevices.getUserMedia({
+    video: { deviceId: { exact: deviceId } },
+    audio: true
+  });
+
+  localStream.getAudioTracks()[0].enabled = micEnabled;
+
+  currentVideoTrack = localStream.getVideoTracks()[0];
+  document.getElementById("localVideo").srcObject = localStream;
+
+  if (currentCall) {
+    const sender = currentCall.peerConnection
+      .getSenders()
+      .find(s => s.track.kind === "video");
+    if (sender) sender.replaceTrack(currentVideoTrack);
+  }
+}
+
+async function switchCamera() {
+  if (videoDevices.length < 2) return;
+
+  currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
+  await startStream(videoDevices[currentDeviceIndex].deviceId);
 }
 
 function toggleMic() {
@@ -191,32 +206,11 @@ function toggleMic() {
   audioTrack.enabled = micEnabled;
 
   const btn = document.getElementById("muteBtn");
-  if (micEnabled) btn.classList.add("active");
-  else btn.classList.remove("active");
-}
-
-async function switchCamera() {
-  if (videoDevices.length < 2) return;
-
-  currentCameraIndex = (currentCameraIndex + 1) % videoDevices.length;
-
-  const newStream = await navigator.mediaDevices.getUserMedia({
-    video: { deviceId: videoDevices[currentCameraIndex].deviceId },
-    audio: false
-  });
-
-  const newVideoTrack = newStream.getVideoTracks()[0];
-  const sender = currentCall?.peerConnection
-    ?.getSenders()
-    .find(s => s.track.kind === "video");
-
-  if (sender) sender.replaceTrack(newVideoTrack);
-
-  localStream.getVideoTracks()[0].stop();
-  localStream.removeTrack(localStream.getVideoTracks()[0]);
-  localStream.addTrack(newVideoTrack);
-
-  document.getElementById("localVideo").srcObject = localStream;
+  if (micEnabled) {
+    btn.classList.add("active");
+  } else {
+    btn.classList.remove("active");
+  }
 }
 </script>
 
